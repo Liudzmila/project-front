@@ -302,13 +302,16 @@
         $titleCell.html('<input type="text" class="input-title" value="' + titleValue + '">');
 
         const raceValue = $raceCell.text();
-        $raceCell.html('<input type="text" class="input-race" value="' + raceValue + '">');
+        const raceSelect = createDropdown('race', raceValue);
+        $raceCell.html(raceSelect);
 
         const professionValue = $professionCell.text();
-        $professionCell.html('<input type="text" class="input-profession" value="' + professionValue + '">');
+        const professionSelect = createDropdown('profession', professionValue);
+        $professionCell.html(professionSelect);
 
         const bannedValue = $bannedCell.text();
-        $bannedCell.html('<input type="text" class="input-banned" value="' + bannedValue + '">');
+        const bannedSelect = createDropdown('banned', bannedValue);
+        $bannedCell.html(bannedSelect);
 
         // Remove previous event listeners before attaching new ones
         $editImg.off('click').on('click', function (event) {
@@ -316,6 +319,28 @@
             savePlayer(id);
             showListOfPlayers(page)
         });
+    }
+
+    function createDropdown(fieldName, selectedValue) {
+        const dropdownOptions = {
+            race: ['HUMAN', 'DWARF', 'ELF', 'GIANT', 'ORC', 'TROLL', 'HOBBIT'],
+            profession: ['WARRIOR', 'ROGUE', 'SORCERER', 'CLERIC', 'PALADIN', 'NAZGUL', 'WARLOCK', 'DRUID'],
+            banned: ['false', 'true']
+        };
+
+        const options = dropdownOptions[fieldName];
+
+        const dropdown = $('<select class="input-' + fieldName.toLowerCase() + '">');
+
+        options.forEach(option => {
+            const $option = $('<option>').val(option).text(option);
+            if (option === selectedValue) {
+                $option.prop('selected', true);
+            }
+            dropdown.append($option);
+        });
+
+        return dropdown;
     }
 
     function savePlayer(id) {
