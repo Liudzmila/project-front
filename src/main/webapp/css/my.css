@@ -125,7 +125,7 @@ form {
 #newLevel,
 #newBirthday,
 #newBanned {
-    box-sizing: border-box; /* Include padding and border in the element's total width */
+    box-sizing: border-box;
     width: 200px;
     padding: 3px;
     margin-bottom: 3px;
