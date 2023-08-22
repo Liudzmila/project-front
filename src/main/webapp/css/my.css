@@ -1,0 +1,144 @@
+table {
+    width: 80%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-bottom: 1%;
+}
+
+tr {
+    height: 1.5em;
+}
+
+th, td {
+    border: 1px solid black;
+    padding: 0.2% 0.5%;
+    white-space: nowrap;
+}
+
+th:nth-child(1), td:nth-child(1) {
+    width: 3%; /* # */
+}
+
+th:nth-child(2), td:nth-child(2) {
+    width: 15%; /* Name */
+}
+
+th:nth-child(3), td:nth-child(3) {
+    width: 20%; /* Title */
+}
+
+th:nth-child(4), td:nth-child(4) {
+    width: 10%; /* Race */
+}
+
+th:nth-child(5), td:nth-child(5) {
+    width: 10%; /* Profession */
+}
+
+th:nth-child(6), td:nth-child(6) {
+    width: 5%; /* Level */
+}
+
+th:nth-child(7), td:nth-child(7) {
+    width: 7%; /* Birthday */
+}
+
+th:nth-child(8), td:nth-child(8) {
+    width: 7%; /* Banned */
+}
+
+th:nth-child(9), td:nth-child(9) {
+    width: 5%; /* Edit */
+}
+
+th:nth-child(10), td:nth-child(10) {
+    width: 5%; /* Delete */
+}
+
+td input {
+    width: 60%;
+    padding: 3px;
+    font-size: 0.9em;
+}
+
+#playersPerPage {
+    margin-bottom: 1%;
+}
+
+ul {
+    margin: 0;
+    padding: 0.5%;
+}
+
+.pagination:before {
+    content: "Pages:";
+    visibility: visible;
+}
+
+li {
+    display: inline;
+    list-style: none;
+    color: black;
+    float: none;
+    padding: 0.2% 0.5%;
+    transition: background-color 0.3s;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin: 0.5%;
+}
+
+ul.pagination .active-page a {
+    font-weight: bold;
+    color: orangered;
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
+
+img {
+    float: none;
+    border: none;
+    margin: 0;
+}
+
+.input-container {
+    clear: both;
+    text-align: right;
+    line-height: 25px;
+}
+
+label {
+    float: left;
+    padding-right: 10px;
+}
+
+form {
+    float: left
+}
+
+#newName,
+#newTitle,
+#newRace,
+#newProfession,
+#newLevel,
+#newBirthday,
+#newBanned {
+    box-sizing: border-box; /* Include padding and border in the element's total width */
+    width: 200px;
+    padding: 3px;
+    margin-bottom: 3px;
+    border-radius: 5px;
+    border-width: 2px;
+}
+
+#createButton {
+    background-color: white;
+    border: none;
+}
+
+.error {
+    border-color: red;
+    background-color: rgba(255, 0, 0, 0.1);
+}
