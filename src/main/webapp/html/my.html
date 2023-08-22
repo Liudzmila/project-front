@@ -1,11 +1,544 @@
-<html>
+<!DOCTYPE html>
 <head>
     <title>RPG</title>
     <script src=https://code.jquery.com/jquery-3.6.0.min.js></script>
     <link href="/css/my.css" rel="stylesheet">
 </head>
+
 <body>
+
 <h1>RPG admin panel</h1>
+
+<h2>Accounts list:</h2>
+
+<div id="selector">
+    <label for="playersPerPage">Count per page:</label>
+    <select id="playersPerPage" onchange="showListOfPlayers(0)">
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+    </select>
+</div>
+
+<table id="myTable">
+    <tr id="myTr">
+        <th>#</th>
+        <th>Name</th>
+        <th>Title</th>
+        <th>Race</th>
+        <th>Profession</th>
+        <th>Level</th>
+        <th>Birthday</th>
+        <th>Banned</th>
+        <th>Edit</th>
+        <th>Delete</th>
+    </tr>
+</table>
+
+<div id="paging">
+    <ul class="pagination" id="pages"></ul>
+</div>
+
+<hr>
+<h2>Create new account:</h2>
+
+<form class="input-container">
+
+    <div class="input-container">
+        <label for="newName">Name:</label>
+        <input type="text" id="newName" placeholder="the name of player" minlength="1" maxlength="12" required>
+    </div>
+
+    <div class="input-container">
+        <label for="newTitle">Title:</label>
+        <input type="text" id="newTitle" placeholder="the title of player" minlength="1" maxlength="30" required>
+    </div>
+
+    <div class="input-container">
+        <label for="newRace">Race:</label>
+        <select id="newRace" required>
+            <option value="HUMAN">HUMAN</option>
+            <option value="DWARF">DWARF</option>
+            <option value="ELF">ELF</option>
+            <option value="GIANT">GIANT</option>
+            <option value="ORC">ORC</option>
+            <option value="TROLL">TROLL</option>
+            <option value="HOBBIT">HOBBIT</option>
+        </select>
+    </div>
+
+    <div class="input-container">
+        <label for="newProfession">Profession:</label>
+        <select id="newProfession" required>
+            <option value="WARRIOR">WARRIOR</option>
+            <option value="ROGUE">ROGUE</option>
+            <option value="SORCERER">SORCERER</option>
+            <option value="CLERIC">CLERIC</option>
+            <option value="PALADIN">PALADIN</option>
+            <option value="NAZGUL">NAZGUL</option>
+            <option value="WARLOCK">WARLOCK</option>
+            <option value="DRUID">DRUID</option>
+        </select>
+    </div>
+
+    <div class="input-container">
+        <label for="newLevel">Level:</label>
+        <input type="number" id="newLevel" placeholder="0-100" min="0" max="100" required>
+    </div>
+
+    <div class="input-container">
+        <label for="newBirthday">Birthday:</label>
+        <input type="date" id="newBirthday" required>
+    </div>
+
+    <div class="input-container">
+        <label for="newBanned">Banned:</label>
+        <select id="newBanned" required>
+            <option value=""></option>
+            <option value="false">false</option>
+            <option value="true">true</option>
+        </select>
+    </div>
+
+    <div class="input-container">
+        <label for="createButton"></label>
+        <button class="input-container" id="createButton"><a href=""><img src="img/save.png"></a></button>
+    </div>
+</form>
+
+<script>
+    let numberOfPages
+    let countOfPlayers
+    let selectedValue
+    let page
+
+    $(document).ready(function () {
+        attachEventListeners(); // Attach event listeners when the page loads
+
+        getPlayersCount();  // Get count of players
+
+        $('#myTable').append($('#myTr')); // Append the header row
+
+        showListOfPlayers(0); // Initialize the table and pagination
+    });
+
+
+    function attachEventListeners() {
+        // Add an event listener to the edit image
+        $(document).on('click', '.edit img', function (event) {
+            event.preventDefault(); // Prevent the default behavior of the anchor tag
+            const playerId = $(this).data('id');
+            updatePlayer(playerId);
+        });
+
+        // Add an event listener to the delete image
+        $(document).on('click', '.delete img', function (event) {
+            event.preventDefault(); // Prevent the default behavior of the anchor tag
+            const playerId = $(this).data('id');
+            deletePlayer(playerId);
+        });
+
+        // Add an event listener to the save image
+        $('#createButton').on('click', function (event) {
+            event.preventDefault(); // Prevent the default behavior of the anchor tag
+            createNewAccount();
+        });
+
+        // Add an event listener to limit the number interval input
+        const inputs = document.querySelectorAll('input[type=number]');
+        Array.from(inputs).forEach(input => {
+            const min = +input.min;
+            const max = +input.max;
+
+            input.addEventListener('input', (e) => {
+                const value = +input.value;
+                if (value > max) {
+                    input.value = max
+                } else if (value < min) {
+                    input.value = min
+                }
+            })
+        });
+
+        // Add an event listener to prevent input of invalid characters
+        $('#newLevel').on('keydown', function (event) {
+            preventInvalidCharacters(event);
+        });
+
+        function preventInvalidCharacters(event) {
+            const allowedKeys = ['Backspace', 'ArrowLeft', 'ArrowRight', 'Delete', 'Tab', 'Enter'];
+            const inputValue = event.key;
+
+            // Check if the pressed key is allowed or if it's a numeric character
+            if (!allowedKeys.includes(inputValue) && isNaN(parseInt(inputValue))) {
+                event.preventDefault(); // Prevent the default behavior of the anchor tag
+            }
+        }
+    }
+
+    function getPlayersCount() {
+        $.ajax({
+            method: 'GET',
+            url: '/rest/players/count',
+            dataType: 'text',
+            success: function (data) {
+                countOfPlayers = data
+                console.log('Count of players = ' + countOfPlayers);
+            }
+        });
+    }
+
+    function showListOfPlayers(numPage) {
+        page = numPage;
+        console.log('Page = ' + (page + 1));
+
+        selectedValue = $("#selector :selected").val(); // Count per page value
+        console.log('Count of players per page = ' + selectedValue);
+
+        $.ajax({
+            method: 'GET',
+            url: '/rest/players/count',
+            dataType: 'text',
+            success: function (data) {
+                // Get count of players
+                countOfPlayers = data;
+                // Calculate number of pages and update table
+                getPlayersList();
+            }
+        });
+    }
+
+    function getPlayersList(pageNumber = page, pageSize = selectedValue) {
+        // Remove all rows except the header row
+        $('#myTable').find('tr:gt(0)').remove();
+
+        // Calculate number of pages
+        numberOfPages = Math.ceil(countOfPlayers / selectedValue);
+        console.log('Number of pages = ' + numberOfPages);
+
+        $.ajax({
+            method: 'GET',
+            url: '/rest/players',
+            data: {
+                pageNumber: pageNumber,
+                pageSize: pageSize
+            },
+            dataType: 'json',
+            success: function (data) {
+                $.each(data, function (key, item) {
+                    // Create <tr>
+                    let id = item.id;
+                    let name = item.name;
+                    let title = item.title;
+                    let race = item.race;
+                    let profession = item.profession;
+                    let level = item.level;
+                    let date = new Date(item.birthday);
+                    let formatDate = (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
+                    let banned = item.banned;
+
+                    let $row = $('<tr data-id="' + id + '"> <td>' + id + '</td> <td data-field="name">' + name + '</td> <td data-field="title">' + title + '</td> <td data-field="race">' + race + '</td> <td data-field="profession">' + profession + '</td> <td data-field="level">' + level + '</td> <td data-field="date">' + formatDate + '</td> <td data-field="banned">' + banned + '</td> <td class="edit"><a href=""><img src="img/edit.png" data-id="' + id + '"></a></td> <td class="delete"><a href=""><img src="img/delete.png" data-id="' + id + '"></a></td> </tr>');
+                    // Append row to the table
+                    $('#myTable').append($row);
+
+                    // Show in console the added item (object)
+                    console.log(item);
+                });
+
+                updatePagination();
+            }
+        });
+    }
+
+    function updatePagination() {
+        $('.pagination').empty(); // Clear the pagination before updating
+
+        // Generate pagination links
+        for (let i = 1; i <= numberOfPages; i++) {
+            const currentPage = i - 1;
+            let $li = $('<li><a href="#">' + i + '</a></li>');
+
+            // Add the 'active-page' class to the current page's <li> element
+            if (currentPage === page) {
+                $li.addClass('active-page');
+            }
+
+            // Add an event listener to each pagination link represented by the $li jQuery object
+            $li.on('click', function () {
+                showListOfPlayers(currentPage);
+            });
+
+            // Add the pagination link to the list of pagination links
+            $('.pagination').append($li);
+        }
+    }
+
+    function updatePlayer(id) {
+
+        resetErrorClasses(); // Reset error classes of input fields
+
+        console.log('Editing player with ID: ' + id);
+
+        const $editCell = $('#myTable tr[data-id="' + id + '"] .edit');
+        const $deleteCell = $('#myTable tr[data-id="' + id + '"] .delete');
+        const $editImg = $editCell.find('img');
+        const $deleteImg = $deleteCell.find('img');
+        const $nameCell = $('#myTable tr[data-id="' + id + '"] td[data-field="name"]');
+        const $titleCell = $('#myTable tr[data-id="' + id + '"] td[data-field="title"]');
+        const $raceCell = $('#myTable tr[data-id="' + id + '"] td[data-field="race"]');
+        const $professionCell = $('#myTable tr[data-id="' + id + '"] td[data-field="profession"]');
+        const $bannedCell = $('#myTable tr[data-id="' + id + '"] td[data-field="banned"]');
+
+        $deleteImg.hide(); // Hide the delete button
+
+        $editImg.attr('src', 'img/save.png'); // Change the edit button image to "Save"
+
+        // Make fields editable by converting text to input fields
+        const nameValue = $nameCell.text();
+        $nameCell.html('<input type="text" class="input-name" value="' + nameValue + '">');
+
+        const titleValue = $titleCell.text();
+        $titleCell.html('<input type="text" class="input-title" value="' + titleValue + '">');
+
+        const raceValue = $raceCell.text();
+        $raceCell.html('<input type="text" class="input-race" value="' + raceValue + '">');
+
+        const professionValue = $professionCell.text();
+        $professionCell.html('<input type="text" class="input-profession" value="' + professionValue + '">');
+
+        const bannedValue = $bannedCell.text();
+        $bannedCell.html('<input type="text" class="input-banned" value="' + bannedValue + '">');
+
+        // Remove previous event listeners before attaching new ones
+        $editImg.off('click').on('click', function (event) {
+            event.preventDefault(); // Prevent the default behavior of the anchor tag
+            savePlayer(id);
+            showListOfPlayers(page)
+        });
+    }
+
+    function savePlayer(id) {
+        // Get the updated field values
+        const nameValue = $('.input-name').val().trim();
+        const titleValue = $('.input-title').val().trim();
+        const raceValue = $('.input-race').val().toUpperCase().trim();
+        const professionValue = $('.input-profession').val().toUpperCase().trim();
+        const bannedValue = $('.input-banned').val().toLowerCase().trim();
+
+        // Create an object with the updated data
+        const updatedData = {};
+
+        if (nameValue !== '') {
+            updatedData.name = nameValue;
+        }
+
+        if (titleValue !== '') {
+            updatedData.title = titleValue;
+        }
+
+        if (raceValue !== '') {
+            updatedData.race = raceValue;
+        }
+
+        if (professionValue !== '') {
+            updatedData.profession = professionValue;
+        }
+
+        if (bannedValue !== '') {
+            updatedData.banned = (bannedValue.toLowerCase() === 'true');
+        }
+
+        // Send a POST request to update the player data
+        $.ajax({
+            method: 'POST',
+            url: '/rest/players/' + id,
+            data: JSON.stringify(updatedData),
+            contentType: 'application/json',
+            success: function (response) {
+                console.log('Player with ID ' + id + ' updated successfully.');
+                // Check if the response has the updated fields and update the corresponding row in the table
+                const $nameCell = $('#myTable tr[data-id="' + id + '"] td[data-field="name"]');
+                const $titleCell = $('#myTable tr[data-id="' + id + '"] td[data-field="title"]');
+                const $raceCell = $('#myTable tr[data-id="' + id + '"] td[data-field="race"]');
+                const $professionCell = $('#myTable tr[data-id="' + id + '"] td[data-field="profession"]');
+                const $bannedCell = $('#myTable tr[data-id="' + id + '"] td[data-field="banned"]');
+
+                if (response.name !== undefined) {
+                    $nameCell.text(response.name);
+                }
+
+                if (response.title !== undefined) {
+                    $titleCell.text(response.title);
+                }
+
+                if (response.race !== undefined) {
+                    $raceCell.text(response.race);
+                }
+
+                if (response.profession !== undefined) {
+                    $professionCell.text(response.profession);
+                }
+
+                if (response.banned !== undefined) {
+                    $bannedCell.text(response.banned);
+                }
+
+                // Change the edit button image back to "Edit"
+                const $editCell = $('#myTable tr[data-id="' + id + '"] .edit');
+                const $editImg = $editCell.find('img');
+                $editImg.attr('src', 'img/edit.png');
+
+                getPlayersCount()
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                if (xhr.status === 404) {
+                    console.error('Player with ID ' + id + ' not found in the database.');
+                } else if (xhr.status === 400) {
+                    console.error('Invalid ID value. Please provide a valid player ID.');
+                } else {
+                    console.error('Error updating player with ID ' + id + ': ' + errorThrown);
+                }
+            }
+        });
+    }
+
+    function deletePlayer(id) {
+        resetErrorClasses(); // Reset error classes of input fields
+
+        console.log('Deleting player with ID: ' + id);
+
+        // Send a DELETE request to delete the player
+        $.ajax({
+            method: 'DELETE',
+            url: '/rest/players/' + id,
+            success: function (response) {
+                console.log('delete response = ' + response)
+                console.log('Player with ID ' + id + ' deleted successfully.');
+                $('#myTable tr[data-id="' + id + '"]').remove();
+                getPlayersCount();
+                // Check if the current page becomes empty after deletion
+                if ($('#myTable tr').length <= 1) {
+                    // Navigate to the previous page
+                    showListOfPlayers(Math.max(page - 1, 0));
+                } else {
+                    // Stay on the same page and refresh the list
+                    showListOfPlayers(page);
+                }
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                if (xhr.status === 404) {
+                    console.error('Player with ID ' + id + ' not found in the database.');
+                } else if (xhr.status === 400) {
+                    console.error('Invalid ID value. Please provide a valid player ID.');
+                } else {
+                    console.error('Error updating player with ID ' + id + ': ' + errorThrown);
+                }
+            }
+        });
+    }
+
+    function createNewAccount() {
+        console.log('Creating new account...')
+        const newName = $('#newName').val().trim();
+        const newTitle = $('#newTitle').val().trim();
+        const newRace = $('#newRace').val(); // Should match the enum values on the server
+        const newProfession = $('#newProfession').val(); // Should match the enum values on the server
+        const newBirthday = new Date($('#newBirthday').val());
+        const newBannedValue = $('#newBanned').val();
+        const newBanned = newBannedValue === '' ? false : (newBannedValue === 'true');
+        const newLevel = parseInt($('#newLevel').val());
+
+        // Highlight empty fields in red
+        let fieldsAreValid = true;
+
+        if (newName === '') {
+            $('#newName').addClass('error');
+            fieldsAreValid = false;
+        } else {
+            $('#newName').removeClass('error');
+        }
+
+        if (newTitle === '') {
+            $('#newTitle').addClass('error');
+            fieldsAreValid = false;
+        } else {
+            $('#newTitle').removeClass('error');
+        }
+
+        if (isNaN(newLevel) || newLevel < 0 || newLevel > 100) {
+            $('#newLevel').addClass('error');
+            fieldsAreValid = false;
+        } else {
+            $('#newLevel').removeClass('error');
+        }
+
+        if (isNaN(newBirthday.getTime())) {
+            $('#newBirthday').addClass('error');
+            fieldsAreValid = false;
+        } else {
+            $('#newBirthday').removeClass('error');
+        }
+
+        if (!fieldsAreValid) {
+            alert('Please fill in the required fields correctly.');
+            return;
+        }
+
+        // Create an object with the new account data
+        const newAccountData = {
+            name: newName,
+            title: newTitle,
+            race: newRace,
+            profession: newProfession,
+            birthday: newBirthday.getTime(), // Convert to Unix timestamp
+            banned: newBanned,
+            level: newLevel,
+        };
+
+        // Send a POST request to create the new account
+        $.ajax({
+            method: 'POST',
+            url: '/rest/players',
+            data: JSON.stringify(newAccountData), // Serialize the data to JSON
+            contentType: 'application/json',
+            success: function (response) {
+                console.log('New account created successfully:', response);
+
+                // Clear the input fields after successful creation
+                $('#newName').val('');
+                $('#newTitle').val('');
+                $('#newRace').val('HUMAN'); // Set the default value for race
+                $('#newProfession').val('WARRIOR'); // Set the default value for profession
+                $('#newLevel').val('');
+                $('#newBirthday').val('');
+                $('#newBanned').prop('selectedIndex', -1);
+
+                getPlayersCount();
+                // Determine the page where the new player will be displayed
+                const playerPage = Math.floor(countOfPlayers / selectedValue);
+
+                // Redirect to the page with the new player's details
+                showListOfPlayers(playerPage);
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                if (xhr.status === 400) {
+                    console.error('Invalid input data. Please provide a valid data.', errorThrown);
+                    alert('Invalid input data. Please provide a valid data.')
+                } else {
+                    console.error('Error creating new account:', errorThrown);
+                }
+            }
+        });
+    }
+
+    function resetErrorClasses() {
+        $('#newName').removeClass('error');
+        $('#newTitle').removeClass('error');
+        $('#newLevel').removeClass('error');
+        $('#newBirthday').removeClass('error');
+    }
+</script>
 
 </body>
 </html>
